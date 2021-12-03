@@ -1,0 +1,17 @@
+fastapi==0.70.0
+uvicorn[standard]==0.15.0
+python-dotenv==0.14.0
+sqlalchemy
+psycopg2==2.8.5
+gunicorn
+pycpfcnpj==1.5.1
+aiocsv==1.2.1
+aiofiles==0.7.0
+aiohttp==3.8.1
+beautifulsoup4==4.10.0
+SQLAlchemy-serializer
+python-multipart
+python-jose
+passlib[bcrypt]
+SQLAlchemy-serializer
+pydantic[email]
