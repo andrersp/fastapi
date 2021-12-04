@@ -1,33 +1,29 @@
 # -*- coding: utf-8 -*-
 
-from contextlib import contextmanager
-
 from fastapi import FastAPI
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from os import environ as env
 
-engine = create_engine(env.get('SQLALCHEMY_DATABASE_URI'),
-                       connect_args={})
+from databases import Database
+from sqlalchemy import create_engine, MetaData
 
-Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+from app.ext.settings import settings
 
-Base = declarative_base()
+
+db = Database(settings.DATABASE_URL)
+
+metadata = MetaData()
+
+engine = create_engine(settings.DATABASE_URL, connect_args={})
+
+
+async def startup():
+    await db.connect()
+
+
+async def shutdown():
+    await db.disconnect()
 
 
 def init_app(app: FastAPI):
-    Base.metadata.create_all(engine)
-
-
-@contextmanager
-def get_session():
-    session = Session()
-
-    try:
-        yield session
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+    metadata.create_all(engine)
+    app.add_event_handler('startup', startup)
+    app.add_event_handler('shutdown', shutdown)

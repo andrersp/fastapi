@@ -2,7 +2,7 @@
 from typing import List
 from fastapi.responses import JSONResponse
 
-from app.core.exceptions import CustomException
+from app.ext.exceptions import CustomException
 
 
 response_schema = {
@@ -38,4 +38,7 @@ def success(params: dict = {}, status_code: int = 200):
 
 def error(params: List[str] = [], status_code: int = 400):
 
-    raise CustomException(status_code=status_code, message=params)
+    response = {"success": False}
+    response.update({'errors': params})
+
+    return JSONResponse(status_code=status_code, content=response)

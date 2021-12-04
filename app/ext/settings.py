@@ -7,7 +7,8 @@ class BaseConfig:
 
     DATABASE_URL: str = os.environ.get("SQLALCHEMY_DATABASE_URI")
     DATABASE_CONNECT_DICT: dict = {}
-    EXTENSIONS = ['app.routers.v1', "app.ext.database", 'app.ext.cors']
+    EXTENSIONS = ['app.ext.exceptions', 'app.routers.v1',
+                  "app.ext.database", 'app.ext.cors']
     SECRET_KEY = os.environ.get("SECRET_KEY")
     ALGORITHM = os.environ.get("ALGORITHM")
     ACCESS_TOKEN_EXPIRE_HOURS = os.environ.get("ACCESS_TOKEN_EXPIRE_HOURS")

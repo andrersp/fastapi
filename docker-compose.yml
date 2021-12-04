@@ -12,8 +12,8 @@ services:
       - POSTGRES_PASSWORD=fastapi
     networks:
       - database_network
-    ports:
-      - 5432:5432
+    # ports:
+    #   - 5432:5432
 
   app:
     build:
@@ -26,7 +26,7 @@ services:
       - net_api
       - database_network
     ports:
-      - 8000:8000
+      - 8001:8000
     env_file: .env
     depends_on:
       - db

@@ -8,11 +8,11 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from sqlalchemy import or_, event
 
-from app.ext.database import Session
-from app.models.user import ModelUser
 from app.ext.settings import settings
 from app.core.schemas.user import User, UserInDB, TokenData
-from app.core.exceptions import CustomException
+from app.ext.exceptions import CustomException
+
+from app.crud import users as crud_user
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/login", auto_error=False)
@@ -27,13 +27,12 @@ def get_password_hashed(plain_passowod):
     return pwd_context.hash(plain_passowod)
 
 
-def authenticate_user(username, password):
+async def authenticate_user(username, password):
 
-    session = Session()
-    user = session.query(ModelUser).filter_by(username=username).first()
+    user = await crud_user.authenticate_user(username)
     if not user:
         return False
-    if not verify_password(password, user.password):
+    if not verify_password(password, user.get('password')):
         return False
     return user
 
@@ -50,16 +49,16 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 
-def get_user(username: str, db: ModelUser = ModelUser):
-    session = Session()
-    user = session.query(db).filter_by(username=username).first()
+async def get_user(username: str):
+    user = await crud_user.get_user_by_username(username)
     if user:
         return user
 
 
-def verify_email(email: str, db: ModelUser = ModelUser):
-    session = Session()
-    user = session.query(db).filter(db.email == email).first()
+async def verify_email(email: str):
+
+    user = await crud_user.verify_email(email)
+
     if user:
         return user
 
@@ -95,14 +94,3 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     #     raise HTTPException(status.HTTP_400_BAD_REQUEST,
     #                         detail='Inactive User')
     return payload
-
-
-# Create Fisrt User
-@event.listens_for(ModelUser.__table__, 'after_create')
-def create_fist_user(target, connection, **kwargs):
-    password = get_password_hashed('admin')
-    connection.execute(
-        "INSERT INTO users (username, email, password, enabled) "
-        f"VALUES ('admin', 'email@mail.com', '{password}', True)"
-
-    )

@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class User(BaseModel):
-    username: str = Field(min_length=2)
+    username: str = Field(min_length=2, max_length=20)
     email: EmailStr
     full_name: Optional[str]
     enabled: Optional[bool]

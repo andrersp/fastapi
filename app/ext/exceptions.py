@@ -1,6 +1,6 @@
 # -*- coding: utf- -*-
 
-from fastapi import Request
+from fastapi import Request, FastAPI
 from fastapi.responses import JSONResponse
 
 
@@ -18,3 +18,7 @@ async def unicorn_exception_handler(request: Request, exc: CustomException):
             "errors": exc.message
         },
     )
+
+
+def init_app(app: FastAPI):
+    app.add_exception_handler(CustomException, unicorn_exception_handler)
