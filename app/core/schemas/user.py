@@ -15,7 +15,6 @@ class User(BaseModel):
     email: EmailStr
     full_name: Optional[str]
     enabled: Optional[bool]
-
     role_id: int = 1
 
 

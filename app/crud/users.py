@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from sqlalchemy import literal_column
+from sqlalchemy import literal_column, select
 from app.models.user import users_database, user_roles
 from app.ext.database import db
 from app.core.schemas.user import UserInDB, User
@@ -25,18 +25,24 @@ async def verify_email(email: str):
         return True
 
 
-async def get_user_by_username(username: str):
+async def get_active_user(username: str):
 
-    query = (users_database
-             .join(user_roles)
-             .select()
-             .filter(users_database.c.username == username)
+    query = (
+        select(
+            [users_database.c.id,
+             users_database.c.username,
+             users_database.c.enabled,
+             user_roles.c.role.label("role")])
+        .filter(
+            users_database.c.username == username
+        )
+        .join(user_roles, users_database.c.role_id == user_roles.c.id)
 
-             )
+    )
     user = await db.fetch_one(query)
 
     if user:
-        return _serialize_user(user)
+        return _serialize_active_user(user)
     return False
 
 
@@ -54,7 +60,9 @@ async def create_user_db(user: UserInDB):
 
 async def get_all_user():
 
-    query = users_database.select()
+    query = (select(
+        [users_database, user_roles.c.name.label("role_name")])
+        .join(user_roles, users_database.c.role_id == user_roles.c.id))
 
     users = await db.fetch_all(query)
 
@@ -63,17 +71,13 @@ async def get_all_user():
 
 async def select_user(user_id: int):
 
-    query = (users_database
-             .join(user_roles)
-             .select()
+    query = (select(users_database, user_roles.c.name.label("role_name"))
              .filter(users_database.c.id == user_id)
+             .join(user_roles, users_database.c.role_id == user_roles.c.id)
 
              )
 
     user = await db.fetch_one(query)
-    # if user:
-    #     for key, value in user.items():
-    #         print(f'{key}: {value}')
 
     if not user:
         return False
@@ -91,18 +95,6 @@ async def update_user_db(user_id: int, user_data: User):
 
     return False
 
-    # with get_session() as session:
-    #     user = session.query(ModelUser).get(user_id)
-    #     user.username = username
-    #     user.email = email
-    #     user.enabled = enabled
-    #     user.full_name = full_name
-    #     session.add(user)
-    #     session.commit()
-    #     session.refresh(user)
-
-    # if not user:
-    #     return False
     return {"succes": True}
 
 
@@ -112,7 +104,8 @@ def _serialize_users(users: list):
         "id": x.get('id'),
         "username": x.get('username'),
         "email": x.get('email'),
-        "enabled": x.get('enabled')
+        "enabled": x.get('enabled'),
+        "access_role": {"role_id": x.get("role_id"), "role_name": x.get("role_name")}
     }, users))
 
 
@@ -123,6 +116,15 @@ def _serialize_user(user: db):
         "username": user.get("username"),
         "email": user.get("email"),
         "full_name": user.get("full_name"),
+        "enabled": user.get("enabled"),
+        "access_role": {"role_id": user.get("role_id"), "role_name": user.get("role_name")}
+    }
+
+
+def _serialize_active_user(user: db):
+
+    return {
+        "id": user.get("id"),
         "enabled": user.get("enabled"),
         'role': user.get("role")
     }

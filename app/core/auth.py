@@ -50,7 +50,7 @@ def create_access_token(data: dict):
 
 
 async def get_user(username: str):
-    user = await crud_user.get_user_by_username(username)
+    user = await crud_user.get_active_user(username)
     if user:
         return user
 
@@ -86,7 +86,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
 
     user = await get_user(username=token_data.username)
-    # print(user)
 
     if not user:
         raise credentials_exception

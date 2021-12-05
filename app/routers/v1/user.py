@@ -29,7 +29,7 @@ async def create_user(user: UserInDB, acls: list = Permission('admin', acl_roles
     if await auth.verify_email(email):
         return error(["E-mail Existsts!"])
 
-    user.password = auth.get_password_hashed(email)
+    user.password = auth.get_password_hashed(password)
 
     try:
         user = await create_user_db(user)
