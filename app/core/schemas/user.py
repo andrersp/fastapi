@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, Field
+
+
+class Role(BaseModel):
+    id: int
+    name: str
+    role: str
 
 
 class User(BaseModel):
@@ -9,6 +15,8 @@ class User(BaseModel):
     email: EmailStr
     full_name: Optional[str]
     enabled: Optional[bool]
+
+    role_id: int = 1
 
 
 class UserInDB(User):

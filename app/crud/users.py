@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from sqlalchemy import literal_column
-from app.models.user import users_database
+from app.models.user import users_database, user_roles
 from app.ext.database import db
 from app.core.schemas.user import UserInDB, User
 
@@ -27,11 +27,16 @@ async def verify_email(email: str):
 
 async def get_user_by_username(username: str):
 
-    query = users_database.select().filter_by(username=username)
+    query = (users_database
+             .join(user_roles)
+             .select()
+             .filter(users_database.c.username == username)
+
+             )
     user = await db.fetch_one(query)
 
     if user:
-        return user
+        return _serialize_user(user)
     return False
 
 
@@ -58,9 +63,17 @@ async def get_all_user():
 
 async def select_user(user_id: int):
 
-    query = users_database.select().filter_by(id=user_id)
+    query = (users_database
+             .join(user_roles)
+             .select()
+             .filter(users_database.c.id == user_id)
+
+             )
 
     user = await db.fetch_one(query)
+    # if user:
+    #     for key, value in user.items():
+    #         print(f'{key}: {value}')
 
     if not user:
         return False
@@ -111,4 +124,5 @@ def _serialize_user(user: db):
         "email": user.get("email"),
         "full_name": user.get("full_name"),
         "enabled": user.get("enabled"),
+        'role': user.get("role")
     }

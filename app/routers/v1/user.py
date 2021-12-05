@@ -9,6 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.core.schemas.user import Token, UserResponse, UserInDB, User
 from app.crud.users import create_user_db, get_all_user, select_user, update_user_db, verify_email
 from app.core import auth
+from app.core.access_role import acl_roles, Permission
 from app.core.http_responses import error, success
 
 
@@ -17,10 +18,11 @@ router = APIRouter(tags=['User'], dependencies=[
 
 
 @router.post('/user')
-async def create_user(user: UserInDB):
+async def create_user(user: UserInDB, acls: list = Permission('admin', acl_roles)):
 
     username = user.username
     email = user.email
+    password = user.password
     if await auth.get_user(username):
         return error(["User Exists!"])
 
@@ -32,6 +34,7 @@ async def create_user(user: UserInDB):
     try:
         user = await create_user_db(user)
     except Exception as e:
+        print(e)
         return error(["Internal error"], 500)
     else:
         return success(user,  status_code=201)
@@ -40,14 +43,14 @@ async def create_user(user: UserInDB):
 
 
 @ router.get("/user")
-async def get_users():
+async def get_users(acls: list = Permission('admin', acl_roles)):
 
     users = await get_all_user()
     return success({"data": users})
 
 
 @ router.get("/user/{user_id}")
-async def get_user(user_id: int):
+async def get_user(user_id: int, acls: list = Permission('admin', acl_roles)):
 
     user = await select_user(user_id)
 
@@ -58,7 +61,7 @@ async def get_user(user_id: int):
 
 
 @ router.put("/user/{user_id}")
-async def update_user(user_id: int, user_data: User):
+async def update_user(user_id: int, user_data: User, acls: list = Permission('admin', acl_roles)):
 
     try:
         user = await update_user_db(user_id, user_data)

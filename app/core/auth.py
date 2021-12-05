@@ -6,11 +6,11 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from jose import JWTError, jwt
-from sqlalchemy import or_, event
 
 from app.ext.settings import settings
-from app.core.schemas.user import User, UserInDB, TokenData
+from app.core.schemas.user import TokenData
 from app.ext.exceptions import CustomException
+
 
 from app.crud import users as crud_user
 
@@ -85,12 +85,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
         raise credentials_exception
 
-    # user = get_user(username=token_data.username)
+    user = await get_user(username=token_data.username)
+    # print(user)
 
-    # if not user:
-    #     raise credentials_exception
+    if not user:
+        raise credentials_exception
 
-    # if not user.enabled:
-    #     raise HTTPException(status.HTTP_400_BAD_REQUEST,
-    #                         detail='Inactive User')
-    return payload
+    if not user['enabled']:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            detail='Inactive User')
+    return user
