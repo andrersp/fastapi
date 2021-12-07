@@ -13,7 +13,7 @@ acl_roles = [
     (Allow, Authenticated, 'view'),
     (Allow, 'role:dev', All),
     (Allow, "role:admin", "admin"),
-    (Allow, "role:operator", "operator"),
+    (Allow, "role:operational", "operator"),
     (Allow, "role:client", "client"),
 
 ]

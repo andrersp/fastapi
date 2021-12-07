@@ -17,3 +17,5 @@ SQLAlchemy-serializer
 pydantic[email]
 databases[postgresql]
 fastapi_permissions
+pytest
+requests

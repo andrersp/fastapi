@@ -70,3 +70,9 @@ def create_fist_user(target, connection, **kwargs):
         "INSERT INTO users (username, email, password, enabled, role_id) "
         f"VALUES ('admin', 'email@mail.com', '{password}', True, 4)"
     )
+
+    password = get_password_hashed('vendas')
+    connection.execute(
+        "INSERT INTO users (username, email, password, enabled, role_id) "
+        f"VALUES ('vendas', 'vendas@mail.com', '{password}', True, 2)"
+    )
