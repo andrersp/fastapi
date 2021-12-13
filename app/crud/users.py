@@ -1,83 +1,80 @@
 # -*- coding: utf-8 -*-
-from sqlalchemy import literal_column, select
-from app.models.user import users_database, user_roles
-from app.ext.database import db
-from app.core.schemas.user import UserInDB, User
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from sqlalchemy.future import select
+from app.models.user import Users, UseBase
+from app.ext.database import async_session, get_session
+
+# async def authenticate_user(username: str) -> UseBase:
+
+#     query = users_database.select().filter_by(username=username)
+#     user = await db.fetch_one(query)
+
+#     if user:
+#         return user
+#     return False
 
 
-async def authenticate_user(username: str) -> UserInDB:
+# async def verify_email(email: str):
 
-    query = users_database.select().filter_by(username=username)
-    user = await db.fetch_one(query)
+#     query = users_database.select().filter_by(email=email)
 
-    if user:
-        return user
-    return False
+#     result = await db.fetch_one(query)
 
-
-async def verify_email(email: str):
-
-    query = users_database.select().filter_by(email=email)
-
-    result = await db.fetch_one(query)
-
-    if result:
-        return True
+#     if result:
+#         return True
 
 
-async def get_active_user(username: str):
+# async def get_active_user(username: str):
 
-    query = (
-        select(
-            [users_database.c.id,
-             users_database.c.username,
-             users_database.c.enabled,
-             user_roles.c.role.label("role")])
-        .filter(
-            users_database.c.username == username
-        )
-        .join(user_roles, users_database.c.role_id == user_roles.c.id)
+#     query = (
+#         select(
+#             [users_database.c.id,
+#              users_database.c.username,
+#              users_database.c.enabled,
+#              user_roles.c.role.label("role")])
+#         .filter(
+#             users_database.c.username == username
+#         )
+#         .join(user_roles, users_database.c.role_id == user_roles.c.id)
 
-    )
-    user = await db.fetch_one(query)
+#     )
+#     user = await db.fetch_one(query)
 
-    if user:
-        return _serialize_active_user(user)
-    return False
+#     if user:
+#         return _serialize_active_user(user)
+#     return False
 
 
-async def create_user_db(user: UserInDB):
+# async def create_user_db(user: User):
 
-    query = users_database.insert()
+#     query = users_database.insert()
 
-    result = await db.execute(query, values=user.dict())
+#     result = await db.execute(query, values=user.dict())
 
-    if result:
-        return _serialize_user({**user.dict(), "id": result})
+#     if result:
+#         return _serialize_user({**user.dict(), "id": result})
 
-    return _serialize_user(result)
+#     return _serialize_user(result)
 
 
 async def get_all_user():
+    
+    
 
-    query = (select(
-        [users_database, user_roles.c.name.label("role_name")])
-        .join(user_roles, users_database.c.role_id == user_roles.c.id))
+    async with async_session() as session:
+        query = await session.execute(select(Users))
+        users = query.scalars().all()
 
-    users = await db.fetch_all(query)
-
-    return _serialize_users(users)
+        
+        return _serialize_users(users)
 
 
 async def select_user(user_id: int):
 
-    query = (select(users_database, user_roles.c.name.label("role_name"))
-             .filter(users_database.c.id == user_id)
-             .join(user_roles, users_database.c.role_id == user_roles.c.id)
-
-             )
-
-    user = await db.fetch_one(query)
+    async with async_session() as session:
+        user = await session.get(Users, user_id)        
 
     if not user:
         return False
@@ -85,46 +82,46 @@ async def select_user(user_id: int):
     return _serialize_user(user)
 
 
-async def update_user_db(user_id: int, user_data: User):
-    query = users_database.update().where(
-        users_database.c.id == user_id).returning(users_database.c.id)
+# async def update_user_db(user_id: int, user_data: User):
+#     query = users_database.update().where(
+#         users_database.c.id == user_id).returning(users_database.c.id)
 
-    user = await db.execute(query, values=user_data.dict())
-    if user:
-        return _serialize_user({**user_data.dict(), "id": user})
+#     user = await db.execute(query, values=user_data.dict())
+#     if user:
+#         return _serialize_user({**user_data.dict(), "id": user})
 
-    return False
+#     return False
 
-    return {"succes": True}
+#     return {"succes": True}
 
 
 def _serialize_users(users: list):
 
     return list(map(lambda x: {
-        "id": x.get('id'),
-        "username": x.get('username'),
-        "email": x.get('email'),
-        "enabled": x.get('enabled'),
-        "access_role": {"role_id": x.get("role_id"), "role_name": x.get("role_name")}
+        "id": x.id,
+        "username": x.username,
+        "email": x.email,
+        "enabled": x.enabled,
+        
     }, users))
 
 
-def _serialize_user(user: db):
+def _serialize_user(user):
 
     return {
-        "id": user.get("id"),
-        "username": user.get("username"),
-        "email": user.get("email"),
-        "full_name": user.get("full_name"),
-        "enabled": user.get("enabled"),
-        "access_role": {"role_id": user.get("role_id"), "role_name": user.get("role_name")}
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "full_name": user.full_name,
+        "enabled": user.enabled,
+        
     }
 
 
-def _serialize_active_user(user: db):
+# def _serialize_active_user(user: db):
 
-    return {
-        "id": user.get("id"),
-        "enabled": user.get("enabled"),
-        'role': user.get("role")
-    }
+#     return {
+#         "id": user.get("id"),
+#         "enabled": user.get("enabled"),
+#         'role': user.get("role")
+#     }
