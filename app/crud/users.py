@@ -1,80 +1,77 @@
 # -*- coding: utf-8 -*-
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from typing import List
+from sqlalchemy.orm import selectinload
 from sqlalchemy.future import select
-from app.models.user import Users, UseBase
+from app.models.user import Users, UseBase, UserRole
 from app.ext.database import async_session, get_session
 
-# async def authenticate_user(username: str) -> UseBase:
 
-#     query = users_database.select().filter_by(username=username)
-#     user = await db.fetch_one(query)
-
-#     if user:
-#         return user
-#     return False
-
-
-# async def verify_email(email: str):
-
-#     query = users_database.select().filter_by(email=email)
-
-#     result = await db.fetch_one(query)
-
-#     if result:
-#         return True
-
-
-# async def get_active_user(username: str):
-
-#     query = (
-#         select(
-#             [users_database.c.id,
-#              users_database.c.username,
-#              users_database.c.enabled,
-#              user_roles.c.role.label("role")])
-#         .filter(
-#             users_database.c.username == username
-#         )
-#         .join(user_roles, users_database.c.role_id == user_roles.c.id)
-
-#     )
-#     user = await db.fetch_one(query)
-
-#     if user:
-#         return _serialize_active_user(user)
-#     return False
-
-
-# async def create_user_db(user: User):
-
-#     query = users_database.insert()
-
-#     result = await db.execute(query, values=user.dict())
-
-#     if result:
-#         return _serialize_user({**user.dict(), "id": result})
-
-#     return _serialize_user(result)
-
-
-async def get_all_user():
-    
-    
+async def authenticate_user(username: str) -> UseBase:
 
     async with async_session() as session:
-        query = await session.execute(select(Users))
-        users = query.scalars().all()
-
+        query = select(Users).filter_by(username=username)
+        user = await session.execute(query)
+        result = user.scalar()
         
+        
+
+    if result:
+        return result
+    return False
+
+
+async def verify_email(email: str):
+
+    async with async_session() as session:
+        query = select(Users).filter_by(email=email)
+        user = await session.execute(query)
+        result = user.scalar()      
+        
+
+    if result:
+        return result
+    return False
+
+
+async def get_active_user(username: str):
+
+    async with async_session() as session:
+        query = select(Users).filter_by(username=username).options(selectinload(Users.role))
+        user = await session.execute(query)
+        result = user.scalar()
+    if result:
+        return result
+    return False
+
+
+async def create_user_db(user: Users):
+
+    async with async_session() as session:
+        user = Users(**user.dict())
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        return _serialize_user(user)
+
+
+
+
+async def get_all_user():   
+
+    async with async_session() as session:
+
+        query = await session.execute(select(Users).options(selectinload(Users.role)))
+        users = query.scalars()  
         return _serialize_users(users)
 
 
 async def select_user(user_id: int):
 
     async with async_session() as session:
-        user = await session.get(Users, user_id)        
+        query = select(Users).filter_by(id=user_id).options(selectinload(Users.role))
+        query = await session.execute(query)
+        user = query.scalar()
 
     if not user:
         return False
@@ -95,13 +92,16 @@ async def select_user(user_id: int):
 #     return {"succes": True}
 
 
-def _serialize_users(users: list):
+def _serialize_users(users: List[Users]):
 
     return list(map(lambda x: {
         "id": x.id,
         "username": x.username,
+        "full_name": x.full_name,
         "email": x.email,
         "enabled": x.enabled,
+        "role": x.role.name
+    
         
     }, users))
 
@@ -113,15 +113,8 @@ def _serialize_user(user):
         "username": user.username,
         "email": user.email,
         "full_name": user.full_name,
-        "enabled": user.enabled,
-        
+        "role": user.role.name
     }
 
 
-# def _serialize_active_user(user: db):
 
-#     return {
-#         "id": user.get("id"),
-#         "enabled": user.get("enabled"),
-#         'role': user.get("role")
-#     }

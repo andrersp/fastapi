@@ -1,34 +1,45 @@
 # -*- coding: utf-8 -*-
 
-from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import EmailStr, BaseModel
+from typing import Optional, List
 
 # from sqlalchemy.orm import relationship
 # from sqlalchemy_serializer import SerializerMixin
 
 from app.ext.database import async_session, engine, get_session
-from app.core.auth import get_password_hashed
-from sqlmodel import SQLModel, Column, String, Field
+
+from sqlmodel import SQLModel, Column, String, Field, Relationship
 
 
+
+
+
+class TokenStr(BaseModel):
+    username: Optional[str] = None
+    
 class UseBase(SQLModel):
 
     username: str 
     password: str = Field(max_length=80)
     full_name: str
-    email: str
+    email: EmailStr
     enabled: bool
+    role_id: Optional[int] = Field(default=None, foreign_key='roles.id')    
 
 class Users(UseBase, table=True):
     __tablename__ = 'user'
     id: int = Field(default=None, primary_key=True)
+    
+    role: Optional['UserRole'] = Relationship(back_populates='user')
 
 
 class UserRole(SQLModel, table=True):
     __tablename__ = 'roles'
     id: int = Field(default=None, primary_key=True)
     name: str = Field(max_length=40)
-    rule: str = Field(max_length=40)
+    role: str = Field(max_length=40)
+    user: List[Users] = Relationship(back_populates='role')
 
 # class ModelUser(Base):
 #     __tablename__ = 'users'
@@ -95,13 +106,7 @@ class UserRole(SQLModel, table=True):
 
 # session = AsyncSession()
 # # Create Fisrt User
-@event.listens_for(Users.__table__, "after_create")
-def create_fist_user(target, connection = async_session().connection(), **kwargs):
 
-    password = get_password_hashed('admin')
-    connection.execute(text(
-        'INSERT INTO "user" (username, password, full_name, email,  enabled) '
-        f"VALUES ('admin', '{password}', 'andre luis', 'email@mail.com', True)")  )
 
     # password = get_password_hashed('vendas')
     # connection.execute(

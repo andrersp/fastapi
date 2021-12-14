@@ -10,49 +10,59 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 # from app.models.user import ModelUser
 from app.models.user import UseBase, Users, UserRole
-from app.crud.users import get_all_user , select_user #, update_user_db, verify_email, create_user_db
-# from app.core import auth
-# from app.core.access_role import acl_roles, Permission
+from app.crud.users import get_all_user , select_user, create_user_db #, update_user_db, verify_email, 
+from app.core import auth
+from app.core.access_role import acl_roles, Permission
 from app.core.http_responses import error, success
 
 
 router = APIRouter(tags=['User'])
 
 
-# @router.post('/user')
-# async def create_user(user: UseBase, acls: list = Permission('admin', acl_roles)):
+@router.post('/user')
+async def create_user(user: UseBase, acls: list = Permission('admin', acl_roles)):
+    username = user.username
+    email = user.email
+    password = user.password
+    if await auth.get_user(username):
+        return error(["User Exists!"])
 
-#     username = user.username
-#     email = user.email
-#     password = user.password
-#     if await auth.get_user(username):
-#         return error(["User Exists!"])
+    if await auth.verify_email(email):
+        return error(["E-mail Existsts!"])
 
-#     if await auth.verify_email(email):
-#         return error(["E-mail Existsts!"])
+    user.password = auth.get_password_hashed(password)
 
-#     user.password = auth.get_password_hashed(password)
+    try:
+        
 
-#     try:
-#         user = await create_user_db(user)
-#     except Exception as e:
-#         print(e)
-#         return error(["Internal error"], 500)
-#     else:
-#         return success(user,  status_code=201)
+        for _ in range(50):
+            r = await create_user_db(user)
+        
+        user = await create_user_db(user)
+        
+    except Exception as e:
+        print(e)
+        return error(["Internal error"], 500)
+    else:
+        return success(user,  status_code=201)
 
-#     return True
+    return True
 
 
 @ router.get("/user")
-async def get_users(session: AsyncSession = Depends(get_session)):    
+async def get_users(acls: list = Permission('admin', acl_roles)):  
 
-    users = await get_all_user()
-    return success({"data": users})
+    try:
+        users = await get_all_user()   
+    except Exception as exc:
+        print(exc)
+        return error({"msg": "Internal error"}, 500)
+    else:
+        return success({"data": users})
 
 
 @ router.get("/user/{user_id}")
-async def get_user(user_id: int):
+async def get_user(user_id: int, acls: list = Permission('admin', acl_roles)):
 
     user = await select_user(user_id)
 

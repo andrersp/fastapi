@@ -5,7 +5,7 @@ from fastapi_permissions import (
     Allow, Authenticated, Deny, Everyone, configure_permissions, All)
 
 from app.core.auth import get_current_user
-from app.core.schemas.user import User
+from app.models.user import Users
 from app.ext.exceptions import CustomException
 
 
@@ -19,16 +19,16 @@ acl_roles = [
 ]
 
 
-def get_user_role(user: User = Depends(get_current_user)):
+def get_user_role(user: Users = Depends(get_current_user)):
 
     if user:
         # user is logged in
         principals = [Everyone, Authenticated]
-        principals.append(user.get("role"))
+        principals.append(user.role.role)
     else:
         # user is not logged in
         principals = [Everyone]
-
+    
     return principals
 
 
