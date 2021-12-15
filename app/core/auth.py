@@ -93,8 +93,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
 
     if not user.enabled:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST,
-                            detail='Inactive User')
+        raise CustomException(status_code=400, message="User not enbled!")
     return user
 
 

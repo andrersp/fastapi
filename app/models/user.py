@@ -19,7 +19,6 @@ class TokenStr(BaseModel):
     username: Optional[str] = None
     
 class UseBase(SQLModel):
-
     username: str 
     password: str = Field(max_length=80)
     full_name: str
@@ -29,9 +28,16 @@ class UseBase(SQLModel):
 
 class Users(UseBase, table=True):
     __tablename__ = 'user'
-    id: int = Field(default=None, primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
     
     role: Optional['UserRole'] = Relationship(back_populates='user')
+
+class UserUpdate(BaseModel):
+    full_name: str
+    email: EmailStr
+    enabled: bool
+    role_id: Optional[int] = Field(default=None, foreign_key='roles.id')  
+
 
 
 class UserRole(SQLModel, table=True):
